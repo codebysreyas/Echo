@@ -5,14 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Echo</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
 
     <div id="app">
-        <h1>Echo</h1>
-        <p>A decentralized messaging app</p>
+
+        <div id="screen-welcome">
+            <h1>Echo</h1>
+            <p>Decentralized messaging. No servers. No surveillance.</p>
+            <button id="btn-generate">Create New Identity</button>
+            <button id="btn-restore">Restore Existing Identity</button>
+        </div>
+
+        <div id="screen-passphrase" style="display:none;">
+            <h2>Your Identity Passphrase</h2>
+            <p>Write these 12 words down and keep them safe. This is the only way to access your account. There is no recovery option.</p>
+            <div id="passphrase-display"></div>
+            <button id="btn-copy">Copy Passphrase</button>
+            <button id="btn-continue">I have saved it, Continue</button>
+        </div>
+
+        <div id="screen-restore" style="display:none;">
+            <h2>Restore Your Identity</h2>
+            <p>Enter your 12 word passphrase to continue.</p>
+            <textarea id="restore-input" placeholder="Enter your 12 words separated by spaces"></textarea>
+            <button id="btn-restore-submit">Restore</button>
+            <p id="restore-error" style="display:none;">Invalid passphrase. Please check your words and try again.</p>
+        </div>
+
+        <div id="screen-profile" style="display:none;">
+            <h2>Set Up Your Profile</h2>
+
+            <div id="avatar-wrapper">
+                <img id="avatar-preview" src="https://ui-avatars.com/api/?name=E&background=random" alt="Profile Picture">
+                <label for="avatar-input">Change Photo</label>
+                <input type="file" id="avatar-input" accept="image/*" style="display:none;">
+            </div>
+
+            <input type="text" id="input-username" placeholder="Username (required)" maxlength="20">
+            <p id="username-error" style="display:none;">Username must be 3 to 20 characters. Letters, numbers and underscore only.</p>
+
+            <input type="text" id="input-displayname" placeholder="Display Name (optional)" maxlength="30">
+
+            <button id="btn-save-profile">Continue to Echo</button>
+        </div>
+
+        <div id="screen-home" style="display:none;">
+            <div id="home-header">
+                <img id="home-avatar" src="" alt="Avatar">
+                <div>
+                    <p id="home-displayname"></p>
+                    <p id="home-username"></p>
+                </div>
+            </div>
+            <p>Echo is ready. Messaging coming soon.</p>
+        </div>
+
     </div>
 
-    <script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
