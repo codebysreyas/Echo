@@ -74,8 +74,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Echo Relayer running on port ${PORT}`);
 });
-```
-
-Now open `relayer/.env` and paste this:
-```
-RELAYER_PRIVATE_KEY=your_private_key_here
