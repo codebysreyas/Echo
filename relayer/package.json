@@ -1,0 +1,35 @@
+{
+  "name": "echo-relayer",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "ethers": "^6.7.0",
+    "express": "^4.18.0"
+  }
+}
+```
+
+Now let's push the relayer to GitHub. But first we need to make sure the `.env` file never gets pushed — it contains your private key.
+
+Create a `.gitignore` file inside the relayer folder:
+```
+New-Item relayer/.gitignore
+```
+
+Open `relayer/.gitignore` and paste:
+```
+.env
+node_modules
+```
+
+Now commit everything to GitHub from VS Code:
+- Press **Ctrl + Shift + G**
+- Type this commit message:
+```
+Add Echo relayer server for gasless blockchain registration

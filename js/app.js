@@ -1,4 +1,4 @@
-import { generatePassphrase, deriveKeys, validatePassphrase } from "./identity.js";
+import { generatePassphrase, deriveKeys, validatePassphrase, registerOnChain, lookupUsername, isUsernameTaken } from "./identity.js";
 
 const screens = {
     welcome: document.getElementById("screen-welcome"),
@@ -81,7 +81,7 @@ document.getElementById("avatar-input").addEventListener("change", (e) => {
     reader.readAsDataURL(file);
 });
 
-document.getElementById("btn-save-profile").addEventListener("click", () => {
+document.getElementById("btn-save-profile").addEventListener("click", async () => {
     const username = document.getElementById("input-username").value.trim();
     const displayname = document.getElementById("input-displayname").value.trim();
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
@@ -92,10 +92,31 @@ document.getElementById("btn-save-profile").addEventListener("click", () => {
     }
 
     document.getElementById("username-error").style.display = "none";
-    sessionStorage.setItem("username", username);
-    sessionStorage.setItem("displayname", displayname);
-    renderHome();
-    showScreen("home");
+    document.getElementById("btn-save-profile").innerText = "Checking username...";
+
+    const taken = await isUsernameTaken(username);
+    if (taken) {
+        document.getElementById("username-error").innerText = "This username is already taken. Please choose another.";
+        document.getElementById("username-error").style.display = "block";
+        document.getElementById("btn-save-profile").innerText = "Continue to Echo";
+        return;
+    }
+
+    document.getElementById("btn-save-profile").innerText = "Registering on blockchain...";
+
+    try {
+        const phrase = sessionStorage.getItem("phrase");
+        const publicKey = sessionStorage.getItem("publicKey");
+        await registerOnChain(phrase, username, publicKey);
+        sessionStorage.setItem("username", username);
+        sessionStorage.setItem("displayname", displayname);
+        renderHome();
+        showScreen("home");
+    } catch (err) {
+        document.getElementById("btn-save-profile").innerText = "Continue to Echo";
+        alert("Registration failed. Please check your internet connection and try again.");
+        console.error(err);
+    }
 });
 
 loadSession();
