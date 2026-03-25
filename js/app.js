@@ -104,10 +104,10 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
 
     document.getElementById("btn-save-profile").innerText = "Registering on blockchain...";
 
-    try {
-        const phrase = sessionStorage.getItem("phrase");
-        const publicKey = sessionStorage.getItem("publicKey");
-        await registerOnChain(phrase, username, publicKey);
+   try {
+    const phrase = sessionStorage.getItem("phrase");
+    const publicKey = sessionStorage.getItem("publicKey");
+    await registerOnChain(username, publicKey);
         sessionStorage.setItem("username", username);
         sessionStorage.setItem("displayname", displayname);
         renderHome();

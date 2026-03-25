@@ -1,0 +1,15 @@
+{
+  "name": "echo-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "ethers": "^6.7.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.17"
+  }
+}

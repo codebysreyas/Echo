@@ -1,0 +1,7 @@
+name = "echo-relayer"
+main = "index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+CONTRACT_ADDRESS = "0x53eeacD39b98E1f973d8157d987f0d486c057eBA"

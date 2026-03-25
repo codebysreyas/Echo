@@ -1,5 +1,3 @@
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from "./contract.js";
-
 export function generatePassphrase() {
     const wallet = ethers.Wallet.createRandom();
     return wallet.mnemonic.phrase;
@@ -23,27 +21,26 @@ export function validatePassphrase(phrase) {
     }
 }
 
-export async function registerOnChain(phrase, username, publicKey) {
-    const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
-    const wallet = ethers.Wallet.fromPhrase(phrase).connect(provider);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
-    const tx = await contract.registerUser(username, publicKey);
-    await tx.wait();
-    return tx.hash;
+export async function isUsernameTaken(username) {
+    const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/check/${username}`);
+    const data = await response.json();
+    return data.taken;
 }
 
 export async function lookupUsername(username) {
-    const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    const result = await contract.getUserByUsername(username);
-    return {
-        username: result[0],
-        publicKey: result[1]
-    };
+    const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/lookup/${username}`);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    return data;
 }
 
-export async function isUsernameTaken(username) {
-    const provider = new ethers.JsonRpcProvider("https://ethereum-sepolia-rpc.publicnode.com");
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-    return await contract.isUsernameTaken(username);
+export async function registerOnChain(username, publicKey) {
+    const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, publicKey })
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error);
+    return data.txHash;
 }
