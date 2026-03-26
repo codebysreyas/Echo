@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="./logo.png" width="120" />
+</p>
+
+<h1 align="center">Echo</h1>
+<p align="center">Decentralized Peer-to-Peer Messaging</p>
 # Echo
 
 Decentralized Peer-to-Peer Messaging
