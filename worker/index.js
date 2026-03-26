@@ -1,10 +1,11 @@
 import { ethers } from "ethers";
 
-const CONTRACT_ADDRESS = "0x53eeacD39b98E1f973d8157d987f0d486c057eBA";
+const CONTRACT_ADDRESS = "0x2902cfa226e9F54C1310F9195a78928508eaA99C";
 const CONTRACT_ABI = [
-    "function registerUser(string memory username, string memory publicKey) public",
+    "function registerUser(address userAddress, string memory username, string memory publicKey) public",
     "function isUsernameTaken(string memory username) public view returns (bool)",
-    "function getUserByUsername(string memory username) public view returns (string memory, string memory)"
+    "function getUserByUsername(string memory username) public view returns (string memory, string memory)",
+    "function isAddressRegistered(address userAddress) public view returns (bool)"
 ];
 
 const SEPOLIA_RPC = "https://ethereum-sepolia-rpc.publicnode.com";
@@ -53,11 +54,12 @@ export default {
         }
 
         if (path === "/register" && request.method === "POST") {
-            const { username, publicKey } = await request.json();
+            const { username, publicKey, userAddress } = await request.json();
+            
 
-            if (!username || !publicKey) {
-                return Response.json({ error: "Username and publicKey required" }, { status: 400, headers: corsHeaders });
-            }
+            if (!username || !publicKey || !userAddress) {
+    return Response.json({ error: "Username, publicKey and userAddress required" }, { status: 400, headers: corsHeaders });
+}
 
             const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
             if (!usernameRegex.test(username)) {
@@ -72,7 +74,7 @@ export default {
                 if (taken) {
                     return Response.json({ error: "Username already taken" }, { status: 400, headers: corsHeaders });
                 }
-                const tx = await contract.registerUser(username, publicKey);
+                const tx = await contract.registerUser(userAddress, username, publicKey);
                 await tx.wait();
                 return Response.json({ success: true, txHash: tx.hash }, { headers: corsHeaders });
             } catch (err) {

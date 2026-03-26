@@ -34,11 +34,11 @@ export async function lookupUsername(username) {
     return data;
 }
 
-export async function registerOnChain(username, publicKey) {
+export async function registerOnChain(username, publicKey, userAddress) {
     const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, publicKey })
+        body: JSON.stringify({ username, publicKey, userAddress })
     });
     const data = await response.json();
     if (!data.success) throw new Error(data.error);
