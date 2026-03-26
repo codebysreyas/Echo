@@ -1,3 +1,5 @@
+// Deployed on Ethereum Sepolia Testnet: 0x2902cfa226e9F54C1310F9195a78928508eaA99C
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -8,20 +10,30 @@ contract EchoIdentity {
         bool exists;
     }
 
+    address public relayer;
     mapping(string => address) private usernameToAddress;
     mapping(address => User) private addressToUser;
 
     event UserRegistered(string username, address userAddress, string publicKey);
 
-    function registerUser(string memory username, string memory publicKey) public {
-        require(!addressToUser[msg.sender].exists, "Address already registered");
+    constructor() {
+        relayer = msg.sender;
+    }
+
+    modifier onlyRelayer() {
+        require(msg.sender == relayer, "Only relayer can call this");
+        _;
+    }
+
+    function registerUser(address userAddress, string memory username, string memory publicKey) public onlyRelayer {
+        require(!addressToUser[userAddress].exists, "Address already registered");
         require(usernameToAddress[username] == address(0), "Username already taken");
         require(bytes(username).length >= 3 && bytes(username).length <= 20, "Username must be 3 to 20 characters");
 
-        addressToUser[msg.sender] = User(username, publicKey, true);
-        usernameToAddress[username] = msg.sender;
+        addressToUser[userAddress] = User(username, publicKey, true);
+        usernameToAddress[username] = userAddress;
 
-        emit UserRegistered(username, msg.sender, publicKey);
+        emit UserRegistered(username, userAddress, publicKey);
     }
 
     function getUserByUsername(string memory username) public view returns (string memory, string memory) {
