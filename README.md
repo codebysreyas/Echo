@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/blob/main/Logo.png" width="120" alt="Echo Logo"/>
+  <img src="Logo.png" width="120" alt="Echo Logo"/>
 </p>
 
 <h1 align="center">Echo</h1>
