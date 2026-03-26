@@ -1,111 +1,108 @@
 <p align="center">
-  <img src="./logo.png" width="120" />
+  <img src="/logo.png" width="120" alt="Echo Logo"/>
 </p>
 
 <h1 align="center">Echo</h1>
-<p align="center">Decentralized Peer-to-Peer Messaging</p>
-# Echo
 
+<p align="center">
 Decentralized Peer-to-Peer Messaging
+</p>
 
-Echo is a messaging application where no company owns your data, no central server stores your conversations, and no one — including the developer — can read your messages.
+<p align="center">
+No phone number • No servers • End-to-end encryption
+</p>
 
-Communication happens directly between devices using peer-to-peer technology and strong end-to-end encryption.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-active%20development-black" />
+  <img src="https://img.shields.io/badge/architecture-P2P-blue" />
+  <img src="https://img.shields.io/badge/webRTC-enabled-success" />
+  <img src="https://img.shields.io/badge/license-MIT-green" />
+</p>
 
-Built using WebRTC, IPFS and Ethereum.
+---
+
+## Overview
+
+Echo is a decentralized messaging application where no company owns your data, no central server stores your conversations, and no intermediary can read your messages.
+
+Communication happens directly between devices using peer-to-peer networking and strong end-to-end encryption.
+
+Echo combines WebRTC, IPFS and Ethereum to create a messaging system that works without centralized infrastructure.
+
+---
+
+## Why Echo Exists
+
+Most messaging platforms rely on centralized servers.
+
+Messages pass through infrastructure owned by corporations.
+Data can be stored, analyzed or accessed through legal requests.
+
+Service outages also affect millions of users simultaneously.
+
+In October 2021, the global Facebook outage disconnected approximately **3.5 billion users** from WhatsApp, Instagram and Facebook for nearly six hours.
+
+Echo explores a different architecture where communication happens **directly between users instead of through a central platform**.
 
 ---
 
 ## Key Properties
 
-* No phone number login
-* No email or account registration
-* Passphrase-based identity
-* Direct device-to-device messaging
-* End-to-end encrypted communication
-* Offline message delivery via IPFS
-* No centralized message servers
-* Works in any modern browser
+• No phone number login
+• No email registration
+• Passphrase-based identity
+• Direct device-to-device messaging
+• End-to-end encryption
+• Offline delivery via IPFS
+• No centralized message servers
+• Works in any modern browser
 
 ---
 
 ## Project Status
 
-Echo is currently in active development.
+Echo is currently under active development.
 
 Completed
 
-* Passphrase identity system
-* Profile setup with username
-* Smart contract for username registry
+• Passphrase identity system
+• Username and profile setup
+• Smart contract username registry
 
-In Progress
+In progress
 
-* WebRTC peer-to-peer messaging
-* IPFS offline message delivery
+• WebRTC peer-to-peer messaging
+• IPFS offline message delivery
 
 Planned
 
-* Image and file sharing
-* GitHub Pages deployment
-* Mobile browser optimization
+• File and image sharing
+• GitHub Pages deployment
+• Mobile browser optimization
 
 ---
 
-## The Problem
-
-Modern messaging platforms are controlled by corporations.
-
-Examples include WhatsApp, Telegram and Instagram. Messages pass through centralized servers where they can be stored, analyzed or handed over to governments.
-
-Service outages also affect millions of people simultaneously.
-
-In October 2021, Facebook infrastructure went down for nearly 6 hours, disconnecting about 3.5 billion users worldwide.
-
-There is currently no widely accessible messaging platform that is fully decentralized, censorship-resistant and simple enough for everyday users.
-
----
-
-## The Solution
-
-Echo removes the central server completely.
-
-Three decentralized technologies work together to achieve this.
-
-Identity
-A 12-word passphrase is generated when the user opens Echo for the first time. This passphrase derives a public and private key pair using BIP-39 cryptography.
-
-Messaging
-If two users are online, messages travel directly between their devices using WebRTC.
-
-Offline delivery
-If a recipient is offline, the encrypted message is stored on IPFS. When the recipient reconnects, the message is fetched and decrypted locally.
-
-Discovery
-The blockchain is used only for storing username to public key mappings so users can find each other.
-
-Messages themselves never touch the blockchain.
-
----
-
-## How It Works
+## How Echo Works
 
 ```
 User opens Echo
-→ Generates 12 word passphrase (identity)
-→ Sets a username
-→ Username registered on Ethereum blockchain
-→ User searches another username
-→ Messages travel directly device-to-device via WebRTC
+→ Generates 12-word passphrase
+→ Derives public/private key pair
+→ Sets username
+
+Username registered on Ethereum
+→ Other users search by username
+
+If both users are online
+→ WebRTC creates direct encrypted connection
 
 If recipient is offline
-
 → Message encrypted locally
 → Stored on IPFS
-→ Recipient retrieves and decrypts on login
+→ Retrieved and decrypted when recipient reconnects
 ```
 
-Nobody in the middle can read the messages.
+Messages never pass through a central server.
 
 ---
 
@@ -114,19 +111,20 @@ Nobody in the middle can read the messages.
 ```
 [User A Device]                    [User B Device]
       |                                  |
-      |-------- WebRTC Direct ---------->|   (both online)
+      |-------- WebRTC Direct ---------->|   (online)
       |                                  |
-      |----> IPFS Storage                |   (User B offline)
+      |----> IPFS Storage                |   (offline)
                   |                      |
                   |<---- Fetch on login--|
-                  
+
 [Ethereum Sepolia]
       |
       |---- Username → Public Key mapping
 ```
 
-Messages travel directly between devices whenever possible.
-IPFS acts as encrypted storage for offline delivery.
+WebRTC handles real-time communication.
+IPFS provides decentralized storage for offline delivery.
+Ethereum stores only identity mappings.
 
 ---
 
@@ -138,42 +136,56 @@ IPFS acts as encrypted storage for offline delivery.
 | Identity       | BIP-39 Mnemonics, ethers.js |
 | Encryption     | TweetNaCl.js                |
 | Smart Contract | Solidity                    |
-| Blockchain     | Ethereum Sepolia Testnet    |
+| Blockchain     | Ethereum Sepolia            |
 | Messaging      | WebRTC                      |
-| Storage        | IPFS via web3.storage       |
+| Storage        | IPFS (web3.storage)         |
 | Hosting        | GitHub Pages                |
 
 ---
 
-## Roadmap
+## Development Roadmap
 
 Phase 1
-Identity and username system
+Identity system and username registry
 
 Phase 2
 Peer-to-peer encrypted messaging
 
 Phase 3
-Offline message delivery via IPFS
+Offline message delivery
 
 Phase 4
-File and image sharing
+File and media sharing
 
 Phase 5
 Mobile optimization and performance improvements
 
 ---
 
+## Security Principles
+
+Echo follows several design principles.
+
+• Messages are encrypted before leaving the device
+• Private keys never leave the client
+• No central server stores conversations
+• Blockchain stores only identity mappings
+• Offline messages remain encrypted in IPFS
+
+---
+
 ## Contributing
 
-Echo is an experimental decentralized messaging project and contributions are welcome.
+Echo is an experimental decentralized messaging system.
 
-Ways to contribute:
+Contributions are welcome.
 
-* report bugs
-* suggest improvements
-* improve documentation
-* test the application
+Ways to contribute
+
+• report bugs
+• suggest improvements
+• improve documentation
+• test new features
 
 Open an issue before submitting a pull request.
 
@@ -182,9 +194,8 @@ Open an issue before submitting a pull request.
 ## Developer
 
 Sreyas VM
-BCA Final Year Student
 
-Echo is being developed as both a thesis project and an open decentralized messaging experiment.
+Building Echo as an open decentralized messaging system.
 
 ---
 
