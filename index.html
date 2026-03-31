@@ -52,15 +52,32 @@
         </div>
 
         <div id="screen-home" style="display:none;">
-            <div id="home-header">
-                <img id="home-avatar" src="" alt="Avatar">
-                <div>
-                    <p id="home-displayname"></p>
-                    <p id="home-username"></p>
-                </div>
-            </div>
-            <p>Echo is ready. Messaging coming soon.</p>
+    <div id="home-header">
+        <img id="home-avatar" src="" alt="Avatar">
+        <div>
+            <p id="home-displayname"></p>
+            <p id="home-username"></p>
         </div>
+    </div>
+
+    <div id="chat-section" style="display:none;">
+        <div id="chat-header">
+            <p id="chat-with"></p>
+            <span id="chat-status"></span>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Type a message">
+            <button id="btn-send">Send</button>
+        </div>
+    </div>
+
+    <div id="new-chat-section">
+        <input type="text" id="input-find-user" placeholder="Enter username to chat">
+        <button id="btn-find-user">Start Chat</button>
+        <p id="find-user-error" style="display:none;">User not found.</p>
+    </div>
+</div>
 
     </div>
 

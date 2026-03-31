@@ -1,4 +1,5 @@
 import { generatePassphrase, deriveKeys, validatePassphrase, registerOnChain, lookupUsername, isUsernameTaken } from "./identity.js";
+import { connectToSignaling, startCall, sendMessage } from "./messaging.js";
 
 const screens = {
     welcome: document.getElementById("screen-welcome"),
@@ -19,6 +20,7 @@ function loadSession() {
     if (username && publicKey) {
         renderHome();
         showScreen("home");
+        initMessaging();
     }
 }
 
@@ -104,20 +106,75 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
 
     document.getElementById("btn-save-profile").innerText = "Registering on blockchain...";
 
-   try {
-    const phrase = sessionStorage.getItem("phrase");
-    const publicKey = sessionStorage.getItem("publicKey");
-    const userAddress = sessionStorage.getItem("address");
-    await registerOnChain(username, publicKey, userAddress);
+    try {
+        const publicKey = sessionStorage.getItem("publicKey");
+        const userAddress = sessionStorage.getItem("address");
+        await registerOnChain(username, publicKey, userAddress);
         sessionStorage.setItem("username", username);
         sessionStorage.setItem("displayname", displayname);
         renderHome();
         showScreen("home");
+        initMessaging();
     } catch (err) {
         document.getElementById("btn-save-profile").innerText = "Continue to Echo";
         alert("Registration failed. Please check your internet connection and try again.");
         console.error(err);
     }
 });
+
+function initMessaging() {
+    const username = sessionStorage.getItem("username");
+    if (!username) return;
+
+    connectToSignaling(username, (message) => {
+        displayMessage(message.from, message.text, message.timestamp, false);
+    });
+
+    document.getElementById("btn-find-user").addEventListener("click", async () => {
+        const targetUsername = document.getElementById("input-find-user").value.trim();
+        if (!targetUsername) return;
+
+        try {
+            await lookupUsername(targetUsername);
+            document.getElementById("find-user-error").style.display = "none";
+            document.getElementById("chat-with").innerText = targetUsername;
+            document.getElementById("chat-section").style.display = "block";
+            document.getElementById("chat-messages").innerHTML = "";
+            await startCall(targetUsername);
+            document.getElementById("chat-status").innerText = "Connecting...";
+            setTimeout(() => {
+                document.getElementById("chat-status").innerText = "Connected";
+            }, 3000);
+        } catch {
+            document.getElementById("find-user-error").style.display = "block";
+        }
+    });
+
+    document.getElementById("btn-send").addEventListener("click", sendCurrentMessage);
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendCurrentMessage();
+    });
+}
+
+function sendCurrentMessage() {
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    const target = document.getElementById("chat-with").innerText;
+    const sent = sendMessage(target, text);
+    if (sent) {
+        displayMessage(sessionStorage.getItem("username"), text, Date.now(), true);
+        input.value = "";
+    }
+}
+
+function displayMessage(from, text, timestamp, isSelf) {
+    const messages = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = isSelf ? "message sent" : "message received";
+    div.innerHTML = `<p>${text}</p><span>${new Date(timestamp).toLocaleTimeString()}</span>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
 
 loadSession();
