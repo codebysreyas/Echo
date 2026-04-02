@@ -27,6 +27,8 @@ Deployed the EchoIdentity smart contract to Ethereum Sepolia Testnet. Built a ga
 
 ---
 
-## Day 5 — Coming up
-Signaling server and WebRTC peer-to-peer messaging.
+## Day 5 — WebRTC Peer-to-Peer Messaging
+Built the WebSocket signaling server using Node.js and deployed it to Render. Implemented full WebRTC peer-to-peer messaging in the browser. Two users can now find each other by username, establish a direct encrypted connection and exchange messages in real time. No server carries the messages — they flow directly between devices.
+
+**Signaling Server:** https://echo-signaling.onrender.com
 ```
