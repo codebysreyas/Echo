@@ -178,7 +178,7 @@ function setupDataChannel(channel) {
 export async function sendMessage(targetUsername, text) {
     let payload;
 
-    if (recipientPublicKey) {
+   if (recipientPublicKey) {
         const encrypted = await encryptMessage(text, recipientPublicKey);
         payload = JSON.stringify({
             from: currentUser,
@@ -200,6 +200,7 @@ export async function sendMessage(targetUsername, text) {
         return true;
     }
     return false;
+    
 }
 
 export function checkOnline(username) {

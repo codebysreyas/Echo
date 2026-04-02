@@ -131,24 +131,25 @@ function initMessaging() {
     });
 
     document.getElementById("btn-find-user").addEventListener("click", async () => {
-    const targetUsername = document.getElementById("input-find-user").value.trim();
-    if (!targetUsername) return;
+        const targetUsername = document.getElementById("input-find-user").value.trim();
+        if (!targetUsername) return;
 
-    try {
-        const userInfo = await lookupUsername(targetUsername);
-        document.getElementById("find-user-error").style.display = "none";
-        document.getElementById("chat-with").innerText = targetUsername;
-        document.getElementById("chat-section").style.display = "block";
-        document.getElementById("chat-messages").innerHTML = "";
-        await startCall(targetUsername, userInfo.publicKey);
-        document.getElementById("chat-status").innerText = "Connecting...";
-        setTimeout(() => {
-            document.getElementById("chat-status").innerText = "Connected";
-        }, 3000);
-    } catch {
-        document.getElementById("find-user-error").style.display = "block";
-    }
-});
+        try {
+            const userInfo = await lookupUsername(targetUsername);
+            document.getElementById("find-user-error").style.display = "none";
+            document.getElementById("chat-with").innerText = targetUsername;
+            document.getElementById("chat-section").style.display = "block";
+            document.getElementById("chat-messages").innerHTML = "";
+            await startCall(targetUsername, userInfo.publicKey);
+            document.getElementById("chat-status").innerText = "Connecting...";
+            setTimeout(() => {
+                document.getElementById("chat-status").innerText = "Connected";
+            }, 3000);
+        } catch (err) {
+            console.error("Find user error:", err);
+            document.getElementById("find-user-error").style.display = "block";
+        }
+    });
 
     document.getElementById("btn-send").addEventListener("click", sendCurrentMessage);
     document.getElementById("chat-input").addEventListener("keydown", (e) => {
