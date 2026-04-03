@@ -58,16 +58,45 @@ document.getElementById("btn-restore").addEventListener("click", () => {
     showScreen("restore");
 });
 
-document.getElementById("btn-restore-submit").addEventListener("click", () => {
+document.getElementById("btn-restore-submit").addEventListener("click", async () => {
     const phrase = document.getElementById("restore-input").value.trim();
-    if (validatePassphrase(phrase)) {
-        const keys = deriveKeys(phrase);
-        sessionStorage.setItem("phrase", phrase);
-        sessionStorage.setItem("publicKey", keys.publicKey);
-        sessionStorage.setItem("privateKey", keys.privateKey);
-        sessionStorage.setItem("address", keys.address);
-        showScreen("profile");
-    } else {
+    if (!validatePassphrase(phrase)) {
+        document.getElementById("restore-error").style.display = "block";
+        return;
+    }
+
+    const keys = deriveKeys(phrase);
+    sessionStorage.setItem("phrase", phrase);
+    sessionStorage.setItem("publicKey", keys.publicKey);
+    sessionStorage.setItem("privateKey", keys.privateKey);
+    sessionStorage.setItem("address", keys.address);
+
+    document.getElementById("btn-restore-submit").innerText = "Restoring...";
+
+    try {
+        const provider = new ethers.JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/Ow9C77r8Zum7U-qVBNS2U");
+        const CONTRACT_ADDRESS = "0x2902cfa226e9F54C1310F9195a78928508eaA99C";
+        const CONTRACT_ABI = [
+            "function getUserByAddress(address userAddress) public view returns (string memory, string memory)",
+            "function isAddressRegistered(address userAddress) public view returns (bool)"
+        ];
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+        const isRegistered = await contract.isAddressRegistered(keys.address);
+
+        if (isRegistered) {
+            const result = await contract.getUserByAddress(keys.address);
+            sessionStorage.setItem("username", result[0]);
+            sessionStorage.setItem("displayname", result[0]);
+            renderHome();
+            showScreen("home");
+            initMessaging();
+        } else {
+            showScreen("profile");
+        }
+    } catch (err) {
+        console.error(err);
+        document.getElementById("btn-restore-submit").innerText = "Restore";
+        document.getElementById("restore-error").innerText = "Failed to restore. Check your connection and try again.";
         document.getElementById("restore-error").style.display = "block";
     }
 });
@@ -157,12 +186,12 @@ function initMessaging() {
     });
 }
 
-async function sendCurrentMessage() {
+function sendCurrentMessage() {
     const input = document.getElementById("chat-input");
     const text = input.value.trim();
     if (!text) return;
     const target = document.getElementById("chat-with").innerText;
-    const sent = await sendMessage(target, text);
+    const sent = sendMessage(target, text);
     if (sent) {
         displayMessage(sessionStorage.getItem("username"), text, Date.now(), true);
         input.value = "";

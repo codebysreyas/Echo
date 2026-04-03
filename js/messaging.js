@@ -5,7 +5,7 @@ let peerConnection = null;
 let dataChannel = null;
 let currentUser = null;
 let onMessageCallback = null;
-let recipientPublicKey = null;
+let sharedKey = null;
 
 const iceConfig = {
     iceServers: [
@@ -27,42 +27,40 @@ function bytesToHex(bytes) {
     return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function encryptMessage(text, theirPublicKeyHex) {
-    const myPrivateKeyHex = sessionStorage.getItem("privateKey");
-    const myPrivateKeyBytes = hexToBytes(myPrivateKeyHex);
-    const theirPublicKeyBytes = hexToBytes(theirPublicKeyHex.slice(4, 68));
-
-    const myKeyPair = await crypto.subtle.importKey(
-        "raw", myPrivateKeyBytes.slice(0, 32),
-        { name: "AES-GCM" }, false, ["encrypt"]
-    );
-
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encoded = new TextEncoder().encode(text);
-    const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, myKeyPair, encoded);
-
-    return bytesToHex(iv) + "." + bytesToHex(new Uint8Array(encrypted));
+function deriveSharedKey(myPublicKeyHex, theirPublicKeyHex) {
+    const myBytes = hexToBytes(myPublicKeyHex.slice(4, 68));
+    const theirBytes = hexToBytes(theirPublicKeyHex.slice(4, 68));
+    const myHex = bytesToHex(myBytes);
+    const theirHex = bytesToHex(theirBytes);
+    const first = myHex < theirHex ? myBytes : theirBytes;
+    const second = myHex < theirHex ? theirBytes : myBytes;
+    const key = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+        key[i] = first[i] ^ second[i];
+    }
+    return key;
 }
 
-async function decryptMessage(encryptedText, theirPublicKeyHex) {
-    const myPrivateKeyHex = sessionStorage.getItem("privateKey");
-    const myPrivateKeyBytes = hexToBytes(myPrivateKeyHex);
+function encryptMessage(text, key) {
+    const textBytes = new TextEncoder().encode(text);
+    const iv = new Uint8Array(16);
+    crypto.getRandomValues(iv);
+    const encrypted = new Uint8Array(textBytes.length);
+    for (let i = 0; i < textBytes.length; i++) {
+        encrypted[i] = textBytes[i] ^ key[i % key.length] ^ iv[i % iv.length];
+    }
+    return bytesToHex(iv) + "." + bytesToHex(encrypted);
+}
 
-    const myKeyPair = await crypto.subtle.importKey(
-        "raw", myPrivateKeyBytes.slice(0, 32),
-        { name: "AES-GCM" }, false, ["decrypt"]
-    );
-
+function decryptMessage(encryptedText, key) {
     const parts = encryptedText.split(".");
     const iv = hexToBytes(parts[0]);
     const encrypted = hexToBytes(parts[1]);
-
-    try {
-        const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, myKeyPair, encrypted);
-        return new TextDecoder().decode(decrypted);
-    } catch {
-        return null;
+    const decrypted = new Uint8Array(encrypted.length);
+    for (let i = 0; i < encrypted.length; i++) {
+        decrypted[i] = encrypted[i] ^ key[i % key.length] ^ iv[i % iv.length];
     }
+    return new TextDecoder().decode(decrypted);
 }
 
 export function connectToSignaling(username, onMessage) {
@@ -90,17 +88,14 @@ export function connectToSignaling(username, onMessage) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
             }
         }
-
-        if (data.type === "online-status") {
-            return data.online;
-        }
     };
 }
 
 export async function startCall(targetUsername, targetPublicKey) {
-    recipientPublicKey = targetPublicKey;
-    peerConnection = new RTCPeerConnection(iceConfig);
+    const myPublicKey = sessionStorage.getItem("publicKey");
+    sharedKey = deriveSharedKey(myPublicKey, targetPublicKey);
 
+    peerConnection = new RTCPeerConnection(iceConfig);
     dataChannel = peerConnection.createDataChannel("echo-messages");
     setupDataChannel(dataChannel);
 
@@ -125,6 +120,15 @@ export async function startCall(targetUsername, targetPublicKey) {
 }
 
 async function handleOffer(offer, from) {
+    try {
+        const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/lookup/${from}`);
+        const userData = await response.json();
+        const myPublicKey = sessionStorage.getItem("publicKey");
+        sharedKey = deriveSharedKey(myPublicKey, userData.publicKey);
+    } catch {
+        sharedKey = null;
+    }
+
     peerConnection = new RTCPeerConnection(iceConfig);
 
     peerConnection.ondatachannel = (event) => {
@@ -158,10 +162,10 @@ function setupDataChannel(channel) {
         console.log("WebRTC data channel open");
     };
 
-    channel.onmessage = async (event) => {
+    channel.onmessage = (event) => {
         const message = JSON.parse(event.data);
-        if (message.encrypted && recipientPublicKey) {
-            const decrypted = await decryptMessage(message.text, recipientPublicKey);
+        if (message.encrypted && sharedKey) {
+            const decrypted = decryptMessage(message.text, sharedKey);
             if (decrypted && onMessageCallback) {
                 onMessageCallback({ from: message.from, text: decrypted, timestamp: message.timestamp });
             }
@@ -175,11 +179,11 @@ function setupDataChannel(channel) {
     };
 }
 
-export async function sendMessage(targetUsername, text) {
+export function sendMessage(targetUsername, text) {
     let payload;
 
-   if (recipientPublicKey) {
-        const encrypted = await encryptMessage(text, recipientPublicKey);
+    if (sharedKey) {
+        const encrypted = encryptMessage(text, sharedKey);
         payload = JSON.stringify({
             from: currentUser,
             text: encrypted,
@@ -200,7 +204,6 @@ export async function sendMessage(targetUsername, text) {
         return true;
     }
     return false;
-    
 }
 
 export function checkOnline(username) {
