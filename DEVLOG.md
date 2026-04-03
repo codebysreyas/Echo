@@ -35,4 +35,4 @@ Built the WebSocket signaling server using Node.js and deployed it to Render. Im
 ---
 
 ## Day 6 — End-to-End Encryption
-Added end-to-end encryption to all messages using the Web Crypto API.Messages are encrypted with AES-GCM before leaving the sender's device and decrypted only on the recipient's device. The encryption is completely invisible to users — messages look and feel the same but are unreadable to anyone intercepting the connection.
+Added end-to-end encryption to all messages. Both users derive the same shared key using their public keys — sorted before XOR so the result is always identical on both sides regardless of who initiates the chat. Messages are encrypted before leaving the sender's device and decrypted only on the recipient's device.Fixed restore flow — returning users are now detected via blockchain lookup and taken directly to home screen without repeating profile setup.
