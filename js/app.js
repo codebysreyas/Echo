@@ -9,10 +9,28 @@ const screens = {
     home: document.getElementById("screen-home")
 };
 
+let activeChat = null;
+let chatHistory = {};
+
 function showScreen(name) {
     Object.values(screens).forEach(s => s.style.display = "none");
-    screens[name].style.display = "block";
+    screens[name].style.display = name === "home" ? "flex" : "flex";
+    if (name !== "home") {
+        screens[name].style.flexDirection = "column";
+    }
 }
+
+function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute("data-theme") === "dark";
+    html.setAttribute("data-theme", isDark ? "light" : "dark");
+    const icon = isDark ? "☀️" : "🌙";
+    document.getElementById("theme-toggle").innerText = icon;
+    const chatToggle = document.getElementById("theme-toggle-chat");
+    if (chatToggle) chatToggle.innerText = icon;
+}
+
+document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 
 function loadSession() {
     const username = sessionStorage.getItem("username");
@@ -27,11 +45,61 @@ function loadSession() {
 function renderHome() {
     const username = sessionStorage.getItem("username");
     const displayname = sessionStorage.getItem("displayname") || username;
-    const avatar = sessionStorage.getItem("avatar") || `https://ui-avatars.com/api/?name=${username}&background=random`;
-    document.getElementById("home-username").innerText = "@" + username;
-    document.getElementById("home-displayname").innerText = displayname;
-    document.getElementById("home-avatar").src = avatar;
+    const avatar = sessionStorage.getItem("avatar") || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=00a884&color=fff`;
+    document.getElementById("sidebar-avatar").src = avatar;
+    document.getElementById("sidebar-name").innerText = displayname;
 }
+
+function addChatToList(username, lastMessage) {
+    const existing = document.getElementById(`chat-item-${username}`);
+    if (existing) {
+        existing.querySelector(".chat-item-preview").innerText = lastMessage || "Connected";
+        return;
+    }
+
+    const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=2a3942&color=fff`;
+    const item = document.createElement("div");
+    item.className = "chat-item";
+    item.id = `chat-item-${username}`;
+    item.innerHTML = `
+        <img class="chat-item-avatar" src="${avatar}" alt="${username}">
+        <div class="chat-item-info">
+            <div class="chat-item-name">${username}</div>
+            <div class="chat-item-preview">${lastMessage || "Connected"}</div>
+        </div>
+    `;
+    item.addEventListener("click", () => openChat(username));
+    document.getElementById("chat-list").prepend(item);
+}
+
+function openChat(username) {
+    activeChat = username;
+    const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=2a3942&color=fff`;
+    document.getElementById("chat-with").innerText = username;
+    document.getElementById("chat-header-avatar").src = avatar;
+    document.getElementById("chat-status").innerText = "Connected";
+    document.getElementById("chat-empty").style.display = "none";
+    document.getElementById("chat-section").style.display = "flex";
+    document.getElementById("chat-section").style.flexDirection = "column";
+    document.getElementById("chat-section").style.height = "100%";
+
+    document.querySelectorAll(".chat-item").forEach(i => i.classList.remove("active"));
+    const item = document.getElementById(`chat-item-${username}`);
+    if (item) item.classList.add("active");
+
+    document.getElementById("chat-messages").innerHTML = "";
+    if (chatHistory[username]) {
+        chatHistory[username].forEach(m => displayMessage(m.from, m.text, m.timestamp, m.isSelf));
+    }
+
+    if (window.innerWidth <= 768) {
+        document.getElementById("chat-main").classList.add("mobile-open");
+    }
+}
+
+document.getElementById("btn-back").addEventListener("click", () => {
+    document.getElementById("chat-main").classList.remove("mobile-open");
+});
 
 document.getElementById("btn-generate").addEventListener("click", () => {
     const phrase = generatePassphrase();
@@ -42,7 +110,8 @@ document.getElementById("btn-generate").addEventListener("click", () => {
 
 document.getElementById("btn-copy").addEventListener("click", () => {
     navigator.clipboard.writeText(sessionStorage.getItem("phrase"));
-    document.getElementById("btn-copy").innerText = "Copied";
+    document.getElementById("btn-copy").innerText = "Copied!";
+    setTimeout(() => document.getElementById("btn-copy").innerText = "Copy Passphrase", 2000);
 });
 
 document.getElementById("btn-continue").addEventListener("click", () => {
@@ -61,6 +130,7 @@ document.getElementById("btn-restore").addEventListener("click", () => {
 document.getElementById("btn-restore-submit").addEventListener("click", async () => {
     const phrase = document.getElementById("restore-input").value.trim();
     if (!validatePassphrase(phrase)) {
+        document.getElementById("restore-error").innerText = "Invalid passphrase. Please check your words and try again.";
         document.getElementById("restore-error").style.display = "block";
         return;
     }
@@ -95,7 +165,7 @@ document.getElementById("btn-restore-submit").addEventListener("click", async ()
         }
     } catch (err) {
         console.error(err);
-        document.getElementById("btn-restore-submit").innerText = "Restore";
+        document.getElementById("btn-restore-submit").innerText = "Restore Identity";
         document.getElementById("restore-error").innerText = "Failed to restore. Check your connection and try again.";
         document.getElementById("restore-error").style.display = "block";
     }
@@ -118,6 +188,7 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
     const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
 
     if (!usernameRegex.test(username)) {
+        document.getElementById("username-error").innerText = "Username must be 3 to 20 characters. Letters, numbers and underscore only.";
         document.getElementById("username-error").style.display = "block";
         return;
     }
@@ -140,7 +211,7 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
         const userAddress = sessionStorage.getItem("address");
         await registerOnChain(username, publicKey, userAddress);
         sessionStorage.setItem("username", username);
-        sessionStorage.setItem("displayname", displayname);
+        sessionStorage.setItem("displayname", displayname || username);
         renderHome();
         showScreen("home");
         initMessaging();
@@ -155,29 +226,41 @@ function initMessaging() {
     const username = sessionStorage.getItem("username");
     if (!username) return;
 
+    document.getElementById("theme-toggle-chat").addEventListener("click", toggleTheme);
+
     connectToSignaling(username, (message) => {
-        displayMessage(message.from, message.text, message.timestamp, false);
+        if (!chatHistory[message.from]) chatHistory[message.from] = [];
+        chatHistory[message.from].push({ ...message, isSelf: false });
+        if (activeChat === message.from) {
+            displayMessage(message.from, message.text, message.timestamp, false);
+        }
+        addChatToList(message.from, message.text);
     });
 
     document.getElementById("btn-find-user").addEventListener("click", async () => {
         const targetUsername = document.getElementById("input-find-user").value.trim();
         if (!targetUsername) return;
 
+        document.getElementById("btn-find-user").innerText = "Finding...";
+
         try {
             const userInfo = await lookupUsername(targetUsername);
             document.getElementById("find-user-error").style.display = "none";
-            document.getElementById("chat-with").innerText = targetUsername;
-            document.getElementById("chat-section").style.display = "block";
-            document.getElementById("chat-messages").innerHTML = "";
+            document.getElementById("input-find-user").value = "";
+            addChatToList(targetUsername, "Connecting...");
+            openChat(targetUsername);
             await startCall(targetUsername, userInfo.publicKey);
-            document.getElementById("chat-status").innerText = "Connecting...";
-            setTimeout(() => {
-                document.getElementById("chat-status").innerText = "Connected";
-            }, 3000);
-        } catch (err) {
-            console.error("Find user error:", err);
+            document.getElementById("chat-status").innerText = "Connected";
+            addChatToList(targetUsername, "Connected");
+        } catch {
             document.getElementById("find-user-error").style.display = "block";
         }
+
+        document.getElementById("btn-find-user").innerText = "Start Chat";
+    });
+
+    document.getElementById("input-find-user").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("btn-find-user").click();
     });
 
     document.getElementById("btn-send").addEventListener("click", sendCurrentMessage);
@@ -189,11 +272,14 @@ function initMessaging() {
 function sendCurrentMessage() {
     const input = document.getElementById("chat-input");
     const text = input.value.trim();
-    if (!text) return;
-    const target = document.getElementById("chat-with").innerText;
-    const sent = sendMessage(target, text);
+    if (!text || !activeChat) return;
+    const sent = sendMessage(activeChat, text);
     if (sent) {
-        displayMessage(sessionStorage.getItem("username"), text, Date.now(), true);
+        if (!chatHistory[activeChat]) chatHistory[activeChat] = [];
+        const msg = { from: sessionStorage.getItem("username"), text, timestamp: Date.now(), isSelf: true };
+        chatHistory[activeChat].push(msg);
+        displayMessage(msg.from, text, msg.timestamp, true);
+        addChatToList(activeChat, text);
         input.value = "";
     }
 }
@@ -201,8 +287,13 @@ function sendCurrentMessage() {
 function displayMessage(from, text, timestamp, isSelf) {
     const messages = document.getElementById("chat-messages");
     const div = document.createElement("div");
-    div.className = isSelf ? "message sent" : "message received";
-    div.innerHTML = `<p>${text}</p><span>${new Date(timestamp).toLocaleTimeString()}</span>`;
+    div.className = `message ${isSelf ? "sent" : "received"}`;
+    div.innerHTML = `
+        <div class="message-bubble">
+            <div class="message-text">${text}</div>
+        </div>
+        <div class="message-time">${new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+    `;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
 }

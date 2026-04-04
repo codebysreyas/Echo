@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,78 +9,108 @@
 </head>
 <body>
 
-    <div id="app">
+<button class="theme-toggle" id="theme-toggle" title="Toggle theme">🌙</button>
 
-        <div id="screen-welcome">
-            <h1>Echo</h1>
-            <p>Decentralized messaging. No servers. No surveillance.</p>
-            <button id="btn-generate">Create New Identity</button>
-            <button id="btn-restore">Restore Existing Identity</button>
+<div id="app">
+
+    <div id="screen-welcome">
+        <div class="welcome-logo">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
         </div>
+        <h1>Echo</h1>
+        <p>Decentralized messaging. No servers. No surveillance. Just you and the people you trust.</p>
+        <button class="btn-primary" id="btn-generate">Create New Identity</button>
+        <button class="btn-secondary" id="btn-restore">Restore Existing Identity</button>
+    </div>
 
-        <div id="screen-passphrase" style="display:none;">
-            <h2>Your Identity Passphrase</h2>
-            <p>Write these 12 words down and keep them safe. This is the only way to access your account. There is no recovery option.</p>
-            <div id="passphrase-display"></div>
-            <button id="btn-copy">Copy Passphrase</button>
-            <button id="btn-continue">I have saved it, Continue</button>
+    <div id="screen-passphrase" style="display:none;">
+        <h2>Your Secret Passphrase</h2>
+        <p>These 12 words are your identity. Write them down somewhere safe — this is the only way to access your account.</p>
+        <div id="passphrase-display"></div>
+        <div class="warning-box">Never share these words with anyone. Echo cannot recover them if lost.</div>
+        <button class="btn-primary" id="btn-copy">Copy Passphrase</button>
+        <button class="btn-secondary" id="btn-continue" style="margin-top:8px;">I have saved it, Continue</button>
+    </div>
+
+    <div id="screen-restore" style="display:none;">
+        <h2>Restore Your Identity</h2>
+        <p>Enter your 12 word passphrase exactly as it was given to you, with spaces between each word.</p>
+        <textarea id="restore-input" placeholder="word1 word2 word3 ... word12"></textarea>
+        <p id="restore-error" style="display:none;"></p>
+        <button class="btn-primary" id="btn-restore-submit">Restore Identity</button>
+    </div>
+
+    <div id="screen-profile" style="display:none;">
+        <h2>Set Up Your Profile</h2>
+        <div id="avatar-wrapper">
+            <img id="avatar-preview" src="https://ui-avatars.com/api/?name=E&background=00a884&color=fff" alt="Profile Picture">
+            <label for="avatar-input">Change Photo</label>
+            <input type="file" id="avatar-input" accept="image/*" style="display:none;">
         </div>
+        <input type="text" class="input-field" id="input-username" placeholder="Username (required)" maxlength="20">
+        <p id="username-error" style="display:none;"></p>
+        <input type="text" class="input-field" id="input-displayname" placeholder="Display Name (optional)" maxlength="30">
+        <button class="btn-primary" id="btn-save-profile">Continue to Echo</button>
+    </div>
 
-        <div id="screen-restore" style="display:none;">
-            <h2>Restore Your Identity</h2>
-            <p>Enter your 12 word passphrase to continue.</p>
-            <textarea id="restore-input" placeholder="Enter your 12 words separated by spaces"></textarea>
-            <button id="btn-restore-submit">Restore</button>
-            <p id="restore-error" style="display:none;">Invalid passphrase. Please check your words and try again.</p>
-        </div>
-
-        <div id="screen-profile" style="display:none;">
-            <h2>Set Up Your Profile</h2>
-
-            <div id="avatar-wrapper">
-                <img id="avatar-preview" src="https://ui-avatars.com/api/?name=E&background=random" alt="Profile Picture">
-                <label for="avatar-input">Change Photo</label>
-                <input type="file" id="avatar-input" accept="image/*" style="display:none;">
+    <div id="screen-home" style="display:none;">
+        <div id="sidebar">
+            <div id="sidebar-header">
+                <img id="sidebar-avatar" src="" alt="Avatar">
+                <span id="sidebar-name"></span>
+                <div class="sidebar-actions">
+                    <button class="icon-btn" id="theme-toggle-chat" title="Toggle theme">🌙</button>
+                </div>
             </div>
 
-            <input type="text" id="input-username" placeholder="Username (required)" maxlength="20">
-            <p id="username-error" style="display:none;">Username must be 3 to 20 characters. Letters, numbers and underscore only.</p>
+            <div id="search-box">
+                <input type="text" id="search-input" placeholder="Search or start new chat">
+            </div>
 
-            <input type="text" id="input-displayname" placeholder="Display Name (optional)" maxlength="30">
+            <div id="new-chat-bar">
+                <input type="text" id="input-find-user" placeholder="Enter username">
+                <button id="btn-find-user">Start Chat</button>
+            </div>
 
-            <button id="btn-save-profile">Continue to Echo</button>
+            <p id="find-user-error" style="display:none;">User not found. Check the username and try again.</p>
+
+            <div id="chat-list"></div>
         </div>
 
-        <div id="screen-home" style="display:none;">
-    <div id="home-header">
-        <img id="home-avatar" src="" alt="Avatar">
-        <div>
-            <p id="home-displayname"></p>
-            <p id="home-username"></p>
+        <div id="chat-main">
+            <div id="chat-empty">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" fill="currentColor"/>
+                </svg>
+                <p>Select a chat to start messaging</p>
+            </div>
+
+            <div id="chat-section" style="display:none;">
+                <div id="chat-header">
+                    <button class="back-btn" id="btn-back">←</button>
+                    <img id="chat-header-avatar" src="" alt="Avatar">
+                    <div id="chat-header-info">
+                        <div id="chat-with"></div>
+                        <div id="chat-status"></div>
+                    </div>
+                </div>
+                <div id="chat-messages"></div>
+                <div id="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message">
+                    <button id="btn-send">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="chat-section" style="display:none;">
-        <div id="chat-header">
-            <p id="chat-with"></p>
-            <span id="chat-status"></span>
-        </div>
-        <div id="chat-messages"></div>
-        <div id="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type a message">
-            <button id="btn-send">Send</button>
-        </div>
-    </div>
-
-    <div id="new-chat-section">
-        <input type="text" id="input-find-user" placeholder="Enter username to chat">
-        <button id="btn-find-user">Start Chat</button>
-        <p id="find-user-error" style="display:none;">User not found.</p>
-    </div>
 </div>
 
-    </div>
-
-    <script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>
