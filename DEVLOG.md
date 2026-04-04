@@ -36,3 +36,8 @@ Built the WebSocket signaling server using Node.js and deployed it to Render. Im
 
 ## Day 6 — End-to-End Encryption
 Added end-to-end encryption to all messages. Both users derive the same shared key using their public keys — sorted before XOR so the result is always identical on both sides regardless of who initiates the chat. Messages are encrypted before leaving the sender's device and decrypted only on the recipient's device.Fixed restore flow — returning users are now detected via blockchain lookup and taken directly to home screen without repeating profile setup.
+
+---
+
+## Day 7 — UI Redesign
+Complete frontend redesign with a clean, responsive chat interface. Built with mobile-first approach — works on phones, tablets and desktops. Added dark and light mode toggle. Chat list sidebar on desktop, full screen chat on mobile. Message bubbles, timestamps, avatar generation, and smooth transitions throughout. Designed to feel familiar and easy to use for anyone.
