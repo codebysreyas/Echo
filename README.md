@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="banner.png" alt="Echo Banner"/>
+  <img src="assets/banner.png" alt="Echo Banner"/>
 </p>
 
 <p align="center">
-  <img src="Logo.png" width="110"/>
+  <img src="assets/Logo.png" width="110"/>
 </p>
 
 <h1 align="center">Echo</h1>
