@@ -39,10 +39,7 @@ Echo combines WebRTC, IPFS and Ethereum to create a messaging system that works 
 
 Most messaging platforms rely on centralized servers.
 
-Messages pass through infrastructure owned by corporations.
-Data can be stored, analyzed or accessed through legal requests.
-
-Service outages also affect millions of users simultaneously.
+Messages pass through infrastructure owned by corporations. Data can be stored, analyzed or accessed through legal requests. Service outages also affect millions of users simultaneously.
 
 In October 2021, the global Facebook outage disconnected approximately **3.5 billion users** from WhatsApp, Instagram and Facebook for nearly six hours.
 
@@ -50,16 +47,38 @@ Echo explores a different architecture where communication happens **directly be
 
 ---
 
+## Screenshots
+
+### Welcome Screen
+<p align="center">
+  <img src="screenshots/echo__index_dark.png" width="48%" alt="Welcome Dark"/>
+  <img src="screenshots/echo_index_light.png" width="48%" alt="Welcome Light"/>
+</p>
+
+### Dashboard
+<p align="center">
+  <img src="screenshots/echo_dashboard_dark.png" width="48%" alt="Dashboard Dark"/>
+  <img src="screenshots/echo_dashboard_light.png" width="48%" alt="Dashboard Light"/>
+</p>
+
+### Chat
+<p align="center">
+  <img src="screenshots/echo_chatui_dark.png" width="48%" alt="Chat Dark"/>
+  <img src="screenshots/echo_chatui_light.png" width="48%" alt="Chat Light"/>
+</p>
+
+---
+
 ## Key Properties
 
-• No phone number login
-• No email registration
-• Passphrase-based identity
-• Direct device-to-device messaging
-• End-to-end encryption
-• Offline delivery via IPFS
-• No centralized message servers
-• Works in any modern browser
+- No phone number login
+- No email registration
+- Passphrase-based identity
+- Direct device-to-device messaging
+- End-to-end encryption
+- Offline delivery via IPFS
+- No centralized message servers
+- Works in any modern browser
 
 ---
 
@@ -67,27 +86,28 @@ Echo explores a different architecture where communication happens **directly be
 
 Echo is currently under active development.
 
-Completed
+**Completed**
 
-• Passphrase identity system
-• Username and profile setup
-• Smart contract username registry
+- Passphrase identity system
+- Username and profile setup
+- Smart contract username registry
+- WebRTC peer-to-peer messaging
+- End-to-end encrypted messages
+- Dark and light mode UI
 
-In progress
+**In Progress**
 
-• WebRTC peer-to-peer messaging
-• IPFS offline message delivery
+- IPFS offline message delivery
+- File and image sharing
 
-Planned
+**Planned**
 
-• File and image sharing
-• GitHub Pages deployment
-• Mobile browser optimization
+- GitHub Pages deployment
+- Mobile browser optimization
 
 ---
 
 ## How Echo Works
-
 ```
 User opens Echo
 → Generates 12-word passphrase
@@ -111,7 +131,6 @@ Messages never pass through a central server.
 ---
 
 ## Architecture
-
 ```
 [User A Device]                    [User B Device]
       |                                  |
@@ -138,10 +157,12 @@ Ethereum stores only identity mappings.
 | -------------- | --------------------------- |
 | Frontend       | HTML, CSS, JavaScript       |
 | Identity       | BIP-39 Mnemonics, ethers.js |
-| Encryption     | TweetNaCl.js                |
+| Encryption     | XOR key exchange            |
 | Smart Contract | Solidity                    |
 | Blockchain     | Ethereum Sepolia            |
 | Messaging      | WebRTC                      |
+| Relayer        | Cloudflare Workers          |
+| Signaling      | Node.js WebSocket           |
 | Storage        | IPFS (web3.storage)         |
 | Hosting        | GitHub Pages                |
 
@@ -149,47 +170,38 @@ Ethereum stores only identity mappings.
 
 ## Development Roadmap
 
-Phase 1
-Identity system and username registry
+Phase 1 — Identity system and username registry
 
-Phase 2
-Peer-to-peer encrypted messaging
+Phase 2 — Peer-to-peer encrypted messaging
 
-Phase 3
-Offline message delivery
+Phase 3 — Offline message delivery
 
-Phase 4
-File and media sharing
+Phase 4 — File and media sharing
 
-Phase 5
-Mobile optimization and performance improvements
+Phase 5 — Mobile optimization and performance improvements
 
 ---
 
 ## Security Principles
 
-Echo follows several design principles.
-
-• Messages are encrypted before leaving the device
-• Private keys never leave the client
-• No central server stores conversations
-• Blockchain stores only identity mappings
-• Offline messages remain encrypted in IPFS
+- Messages are encrypted before leaving the device
+- Private keys never leave the client
+- No central server stores conversations
+- Blockchain stores only identity mappings
+- Offline messages remain encrypted in IPFS
 
 ---
 
 ## Contributing
 
-Echo is an experimental decentralized messaging system.
-
-Contributions are welcome.
+Echo is an experimental decentralized messaging system. Contributions are welcome.
 
 Ways to contribute
 
-• report bugs
-• suggest improvements
-• improve documentation
-• test new features
+- Report bugs
+- Suggest improvements
+- Improve documentation
+- Test new features
 
 Open an issue before submitting a pull request.
 
@@ -197,9 +209,7 @@ Open an issue before submitting a pull request.
 
 ## Developer
 
-Sreyas VM
-
-Building Echo as an open decentralized messaging system.
+Sreyas VM — Building Echo as an open decentralized messaging system.
 
 ---
 
