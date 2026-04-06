@@ -1,3 +1,5 @@
+import { storeOfflineMessage } from "./ipfs.js";
+
 const SIGNALING_SERVER = "wss://echo-signaling.onrender.com";
 
 let ws = null;
@@ -6,6 +8,7 @@ let dataChannel = null;
 let currentUser = null;
 let onMessageCallback = null;
 let sharedKey = null;
+let isConnected = false;
 
 const iceConfig = {
     iceServers: [
@@ -92,6 +95,7 @@ export function connectToSignaling(username, onMessage) {
 }
 
 export async function startCall(targetUsername, targetPublicKey) {
+    isConnected = false;
     const myPublicKey = sessionStorage.getItem("publicKey");
     sharedKey = deriveSharedKey(myPublicKey, targetPublicKey);
 
@@ -120,6 +124,7 @@ export async function startCall(targetUsername, targetPublicKey) {
 }
 
 async function handleOffer(offer, from) {
+    isConnected = false;
     try {
         const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/lookup/${from}`);
         const userData = await response.json();
@@ -160,6 +165,7 @@ async function handleOffer(offer, from) {
 function setupDataChannel(channel) {
     channel.onopen = () => {
         console.log("WebRTC data channel open");
+        isConnected = true;
     };
 
     channel.onmessage = (event) => {
@@ -176,10 +182,11 @@ function setupDataChannel(channel) {
 
     channel.onclose = () => {
         console.log("WebRTC data channel closed");
+        isConnected = false;
     };
 }
 
-export function sendMessage(targetUsername, text) {
+export async function sendMessage(targetUsername, text) {
     let payload;
 
     if (sharedKey) {
@@ -199,11 +206,18 @@ export function sendMessage(targetUsername, text) {
         });
     }
 
-    if (dataChannel && dataChannel.readyState === "open") {
+    if (isConnected && dataChannel && dataChannel.readyState === "open") {
         dataChannel.send(payload);
-        return true;
+        return { sent: true, method: "webrtc" };
     }
-    return false;
+
+    try {
+        const message = JSON.parse(payload);
+        await storeOfflineMessage(targetUsername, message.text, currentUser);
+        return { sent: true, method: "ipfs" };
+    } catch {
+        return { sent: false };
+    }
 }
 
 export function checkOnline(username) {

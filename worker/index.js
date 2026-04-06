@@ -55,11 +55,10 @@ export default {
 
         if (path === "/register" && request.method === "POST") {
             const { username, publicKey, userAddress } = await request.json();
-            
 
             if (!username || !publicKey || !userAddress) {
-    return Response.json({ error: "Username, publicKey and userAddress required" }, { status: 400, headers: corsHeaders });
-}
+                return Response.json({ error: "Username, publicKey and userAddress required" }, { status: 400, headers: corsHeaders });
+            }
 
             const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
             if (!usernameRegex.test(username)) {
@@ -79,6 +78,87 @@ export default {
                 return Response.json({ success: true, txHash: tx.hash }, { headers: corsHeaders });
             } catch (err) {
                 return Response.json({ error: "Registration failed: " + err.message }, { status: 500, headers: corsHeaders });
+            }
+        }
+
+        if (path === "/store-message" && request.method === "POST") {
+            const { recipientUsername, encryptedMessage, senderUsername, timestamp } = await request.json();
+
+            if (!recipientUsername || !encryptedMessage || !senderUsername) {
+                return Response.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
+            }
+
+            try {
+                const messageData = JSON.stringify({
+                    from: senderUsername,
+                    to: recipientUsername,
+                    text: encryptedMessage,
+                    timestamp: timestamp || Date.now(),
+                    encrypted: true
+                });
+
+                const formData = new FormData();
+                formData.append("file", new Blob([messageData], { type: "application/json" }), "message.json");
+                formData.append("pinataMetadata", JSON.stringify({
+                    name: `echo-msg-${recipientUsername}-${Date.now()}`,
+                    keyvalues: { recipient: recipientUsername, sender: senderUsername }
+                }));
+
+                const pinataResponse = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${env.PINATA_JWT}` },
+                    body: formData
+                });
+
+                const pinataData = await pinataResponse.json();
+
+                if (!pinataData.IpfsHash) {
+                    return Response.json({ error: "IPFS upload failed" }, { status: 500, headers: corsHeaders });
+                }
+
+                return Response.json({ success: true, ipfsHash: pinataData.IpfsHash }, { headers: corsHeaders });
+            } catch (err) {
+                return Response.json({ error: "Store failed: " + err.message }, { status: 500, headers: corsHeaders });
+            }
+        }
+
+        if (path.startsWith("/get-messages/")) {
+            const recipientUsername = decodeURIComponent(path.split("/get-messages/")[1]);
+
+            try {
+                const pinataResponse = await fetch(
+                    `https://api.pinata.cloud/data/pinList?metadata[keyvalues][recipient]={"value":"${recipientUsername}","op":"eq"}&status=pinned`,
+                    { headers: { Authorization: `Bearer ${env.PINATA_JWT}` } }
+                );
+
+                const pinataData = await pinataResponse.json();
+
+                if (!pinataData.rows) {
+                    return Response.json({ messages: [] }, { headers: corsHeaders });
+                }
+
+                const hashes = pinataData.rows.map(row => ({
+                    ipfsHash: row.ipfs_pin_hash,
+                    timestamp: row.date_pinned
+                }));
+
+                return Response.json({ messages: hashes }, { headers: corsHeaders });
+            } catch (err) {
+                return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+            }
+        }
+
+        if (path.startsWith("/delete-message/")) {
+            const ipfsHash = path.split("/delete-message/")[1];
+
+            try {
+                await fetch(`https://api.pinata.cloud/pinning/unpin/${ipfsHash}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${env.PINATA_JWT}` }
+                });
+                return Response.json({ success: true }, { headers: corsHeaders });
+            } catch (err) {
+                return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
             }
         }
 

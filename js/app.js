@@ -1,5 +1,6 @@
 import { generatePassphrase, deriveKeys, validatePassphrase, registerOnChain, lookupUsername, isUsernameTaken } from "./identity.js";
 import { connectToSignaling, startCall, sendMessage } from "./messaging.js";
+import { fetchOfflineMessages, deleteOfflineMessage } from "./ipfs.js";
 
 const screens = {
     welcome: document.getElementById("screen-welcome"),
@@ -12,9 +13,21 @@ const screens = {
 let activeChat = null;
 let chatHistory = {};
 
+function loadChatHistory() {
+    const username = sessionStorage.getItem("username");
+    if (!username) return;
+    chatHistory = JSON.parse(localStorage.getItem(`echo_chat_history_${username}`) || "{}");
+}
+
+function saveChatHistory() {
+    const username = sessionStorage.getItem("username");
+    if (!username) return;
+    localStorage.setItem(`echo_chat_history_${username}`, JSON.stringify(chatHistory));
+}
+
 function showScreen(name) {
     Object.values(screens).forEach(s => s.style.display = "none");
-    screens[name].style.display = name === "home" ? "flex" : "flex";
+    screens[name].style.display = "flex";
     if (name !== "home") {
         screens[name].style.flexDirection = "column";
     }
@@ -36,10 +49,22 @@ function loadSession() {
     const username = sessionStorage.getItem("username");
     const publicKey = sessionStorage.getItem("publicKey");
     if (username && publicKey) {
+        loadChatHistory();
         renderHome();
         showScreen("home");
         initMessaging();
+        restoreChatList();
     }
+}
+
+function restoreChatList() {
+    Object.keys(chatHistory).forEach(username => {
+        const msgs = chatHistory[username];
+        if (msgs && msgs.length > 0) {
+            const last = msgs[msgs.length - 1];
+            addChatToList(username, last.text);
+        }
+    });
 }
 
 function renderHome() {
@@ -77,7 +102,7 @@ function openChat(username) {
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=2a3942&color=fff`;
     document.getElementById("chat-with").innerText = username;
     document.getElementById("chat-header-avatar").src = avatar;
-    document.getElementById("chat-status").innerText = "Connected";
+    document.getElementById("chat-status").innerText = "Connecting...";
     document.getElementById("chat-empty").style.display = "none";
     document.getElementById("chat-section").style.display = "flex";
     document.getElementById("chat-section").style.flexDirection = "column";
@@ -157,9 +182,11 @@ document.getElementById("btn-restore-submit").addEventListener("click", async ()
             const result = await contract.getUserByAddress(keys.address);
             sessionStorage.setItem("username", result[0]);
             sessionStorage.setItem("displayname", result[0]);
+            loadChatHistory();
             renderHome();
             showScreen("home");
             initMessaging();
+            restoreChatList();
         } else {
             showScreen("profile");
         }
@@ -212,9 +239,11 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
         await registerOnChain(username, publicKey, userAddress);
         sessionStorage.setItem("username", username);
         sessionStorage.setItem("displayname", displayname || username);
+        loadChatHistory();
         renderHome();
         showScreen("home");
         initMessaging();
+        restoreChatList();
     } catch (err) {
         document.getElementById("btn-save-profile").innerText = "Continue to Echo";
         alert("Registration failed. Please check your internet connection and try again.");
@@ -222,15 +251,36 @@ document.getElementById("btn-save-profile").addEventListener("click", async () =
     }
 });
 
-function initMessaging() {
+async function deliverOfflineMessages(username) {
+    try {
+        const messages = await fetchOfflineMessages(username);
+        for (const msg of messages) {
+            if (!chatHistory[msg.from]) chatHistory[msg.from] = [];
+            chatHistory[msg.from].push({ from: msg.from, text: msg.text, timestamp: msg.timestamp, isSelf: false });
+            saveChatHistory();
+            addChatToList(msg.from, msg.text);
+            await deleteOfflineMessage(msg.ipfsHash);
+        }
+        if (messages.length > 0) {
+            console.log(`Delivered ${messages.length} offline messages`);
+        }
+    } catch (err) {
+        console.error("Offline message delivery failed:", err);
+    }
+}
+
+async function initMessaging() {
     const username = sessionStorage.getItem("username");
     if (!username) return;
+
+    await deliverOfflineMessages(username);
 
     document.getElementById("theme-toggle-chat").addEventListener("click", toggleTheme);
 
     connectToSignaling(username, (message) => {
         if (!chatHistory[message.from]) chatHistory[message.from] = [];
         chatHistory[message.from].push({ ...message, isSelf: false });
+        saveChatHistory();
         if (activeChat === message.from) {
             displayMessage(message.from, message.text, message.timestamp, false);
         }
@@ -250,8 +300,10 @@ function initMessaging() {
             addChatToList(targetUsername, "Connecting...");
             openChat(targetUsername);
             await startCall(targetUsername, userInfo.publicKey);
-            document.getElementById("chat-status").innerText = "Connected";
-            addChatToList(targetUsername, "Connected");
+            setTimeout(() => {
+                document.getElementById("chat-status").innerText = "Connected";
+                addChatToList(targetUsername, "Connected");
+            }, 3000);
         } catch {
             document.getElementById("find-user-error").style.display = "block";
         }
@@ -269,17 +321,20 @@ function initMessaging() {
     });
 }
 
-function sendCurrentMessage() {
+async function sendCurrentMessage() {
     const input = document.getElementById("chat-input");
     const text = input.value.trim();
     if (!text || !activeChat) return;
-    const sent = sendMessage(activeChat, text);
-    if (sent) {
+
+    const result = await sendMessage(activeChat, text);
+
+    if (result && result.sent) {
         if (!chatHistory[activeChat]) chatHistory[activeChat] = [];
         const msg = { from: sessionStorage.getItem("username"), text, timestamp: Date.now(), isSelf: true };
         chatHistory[activeChat].push(msg);
+        saveChatHistory();
         displayMessage(msg.from, text, msg.timestamp, true);
-        addChatToList(activeChat, text);
+        addChatToList(activeChat, result.method === "ipfs" ? text + " (delivered offline)" : text);
         input.value = "";
     }
 }
