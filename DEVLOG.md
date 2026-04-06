@@ -44,7 +44,6 @@ Complete frontend redesign with a clean, responsive chat interface. Built with m
 
 ---
 
-## Day 8 — GitHub Pages Deployment
-Echo is now live at https://codebysreyas.github.io/Echo. 
-Full flow working on the live URL — passphrase generation, 
-blockchain registration, WebRTC messaging, end-to-end encryption.
+## Day 8 — IPFS Offline Delivery and GitHub Pages
+Deployed Echo to GitHub Pages — now live at https://codebysreyas.github.io/Echo .Added offline message delivery using IPFS via Pinata. When a recipient is offline, messages are encrypted and stored on IPFS. When they come back online, messages are automatically fetched and delivered. Added persistent chat history using localStorage so messages survive page refreshes.
+
