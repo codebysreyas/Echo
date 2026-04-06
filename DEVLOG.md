@@ -41,3 +41,10 @@ Added end-to-end encryption to all messages. Both users derive the same shared k
 
 ## Day 7 — UI Redesign
 Complete frontend redesign with a clean, responsive chat interface. Built with mobile-first approach — works on phones, tablets and desktops. Added dark and light mode toggle. Chat list sidebar on desktop, full screen chat on mobile. Message bubbles, timestamps, avatar generation, and smooth transitions throughout. Designed to feel familiar and easy to use for anyone.
+
+---
+
+## Day 8 — GitHub Pages Deployment
+Echo is now live at https://codebysreyas.github.io/Echo. 
+Full flow working on the live URL — passphrase generation, 
+blockchain registration, WebRTC messaging, end-to-end encryption.
