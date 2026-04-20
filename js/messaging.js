@@ -37,6 +37,7 @@ function deriveSharedKey(myPublicKeyHex, theirPublicKeyHex) {
     const theirHex = bytesToHex(theirBytes);
     const first = myHex < theirHex ? myBytes : theirBytes;
     const second = myHex < theirHex ? theirBytes : myBytes;
+
     const key = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
         key[i] = first[i] ^ second[i];
@@ -48,10 +49,12 @@ function encryptMessage(text, key) {
     const textBytes = new TextEncoder().encode(text);
     const iv = new Uint8Array(16);
     crypto.getRandomValues(iv);
+
     const encrypted = new Uint8Array(textBytes.length);
     for (let i = 0; i < textBytes.length; i++) {
         encrypted[i] = textBytes[i] ^ key[i % key.length] ^ iv[i % iv.length];
     }
+
     return bytesToHex(iv) + "." + bytesToHex(encrypted);
 }
 
@@ -59,10 +62,12 @@ function decryptMessage(encryptedText, key) {
     const parts = encryptedText.split(".");
     const iv = hexToBytes(parts[0]);
     const encrypted = hexToBytes(parts[1]);
+
     const decrypted = new Uint8Array(encrypted.length);
     for (let i = 0; i < encrypted.length; i++) {
         decrypted[i] = encrypted[i] ^ key[i % key.length] ^ iv[i % iv.length];
     }
+
     return new TextDecoder().decode(decrypted);
 }
 
@@ -96,6 +101,7 @@ export function connectToSignaling(username, onMessage) {
 
 export async function startCall(targetUsername, targetPublicKey) {
     isConnected = false;
+
     const myPublicKey = sessionStorage.getItem("publicKey");
     sharedKey = deriveSharedKey(myPublicKey, targetPublicKey);
 
@@ -125,9 +131,11 @@ export async function startCall(targetUsername, targetPublicKey) {
 
 async function handleOffer(offer, from) {
     isConnected = false;
+
     try {
         const response = await fetch(`https://echo-relayer.sreyasmurali150.workers.dev/lookup/${from}`);
         const userData = await response.json();
+
         const myPublicKey = sessionStorage.getItem("publicKey");
         sharedKey = deriveSharedKey(myPublicKey, userData.publicKey);
     } catch {
@@ -152,6 +160,7 @@ async function handleOffer(offer, from) {
     };
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
@@ -162,6 +171,7 @@ async function handleOffer(offer, from) {
     }));
 }
 
+/* ✅ UPDATED HERE */
 function setupDataChannel(channel) {
     channel.onopen = () => {
         console.log("WebRTC data channel open");
@@ -170,10 +180,22 @@ function setupDataChannel(channel) {
 
     channel.onmessage = (event) => {
         const message = JSON.parse(event.data);
+
+        // ✅ FILE HANDLING
+        if (message.type === "file") {
+            if (onMessageCallback) onMessageCallback(message);
+            return;
+        }
+
+        // ✅ NORMAL MESSAGE HANDLING
         if (message.encrypted && sharedKey) {
             const decrypted = decryptMessage(message.text, sharedKey);
             if (decrypted && onMessageCallback) {
-                onMessageCallback({ from: message.from, text: decrypted, timestamp: message.timestamp });
+                onMessageCallback({
+                    from: message.from,
+                    text: decrypted,
+                    timestamp: message.timestamp
+                });
             }
         } else {
             if (onMessageCallback) onMessageCallback(message);
@@ -191,6 +213,7 @@ export async function sendMessage(targetUsername, text) {
 
     if (sharedKey) {
         const encrypted = encryptMessage(text, sharedKey);
+
         payload = JSON.stringify({
             from: currentUser,
             text: encrypted,
@@ -220,16 +243,38 @@ export async function sendMessage(targetUsername, text) {
     }
 }
 
+export async function sendFile(targetUsername, ipfsHash, fileName, fileType, fileSize) {
+    const payload = JSON.stringify({
+        from: currentUser,
+        type: "file",
+        ipfsHash,
+        fileName,
+        fileType,
+        fileSize,
+        timestamp: Date.now()
+    });
+
+    if (isConnected && dataChannel && dataChannel.readyState === "open") {
+        dataChannel.send(payload);
+        return { sent: true, method: "webrtc" };
+    }
+
+    return { sent: false };
+}
+
 export function checkOnline(username) {
     return new Promise((resolve) => {
         ws.send(JSON.stringify({ type: "check-online", username }));
+
         const handler = (event) => {
             const data = JSON.parse(event.data);
+
             if (data.type === "online-status" && data.username === username) {
                 ws.removeEventListener("message", handler);
                 resolve(data.online);
             }
         };
+
         ws.addEventListener("message", handler);
     });
 }

@@ -41,3 +41,27 @@ export async function deleteOfflineMessage(ipfsHash) {
     });
     return await response.json();
 }
+
+export async function uploadFileToIPFS(file) {
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) throw new Error("File too large. Maximum size is 10MB.");
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("pinataMetadata", JSON.stringify({ name: `echo-file-${Date.now()}` }));
+
+    const response = await fetch(`${RELAYER_URL}/upload-file`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || "Upload failed");
+    return data.ipfsHash;
+}
+
+export async function fetchFileFromIPFS(ipfsHash) {
+    const response = await fetch(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+    if (!response.ok) throw new Error("Failed to fetch file");
+    return response;
+}

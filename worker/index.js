@@ -69,12 +69,15 @@ export default {
                 const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
                 const wallet = new ethers.Wallet(env.RELAYER_PRIVATE_KEY, provider);
                 const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+
                 const taken = await contract.isUsernameTaken(username);
                 if (taken) {
                     return Response.json({ error: "Username already taken" }, { status: 400, headers: corsHeaders });
                 }
+
                 const tx = await contract.registerUser(userAddress, username, publicKey);
                 await tx.wait();
+
                 return Response.json({ success: true, txHash: tx.hash }, { headers: corsHeaders });
             } catch (err) {
                 return Response.json({ error: "Registration failed: " + err.message }, { status: 500, headers: corsHeaders });
@@ -159,6 +162,39 @@ export default {
                 return Response.json({ success: true }, { headers: corsHeaders });
             } catch (err) {
                 return Response.json({ error: err.message }, { status: 500, headers: corsHeaders });
+            }
+        }
+
+        if (path === "/upload-file" && request.method === "POST") {
+            try {
+                const formData = await request.formData();
+                const file = formData.get("file");
+
+                if (!file) {
+                    return Response.json({ error: "No file provided" }, { status: 400, headers: corsHeaders });
+                }
+
+                const uploadFormData = new FormData();
+                uploadFormData.append("file", file);
+                uploadFormData.append("pinataMetadata", JSON.stringify({
+                    name: `echo-file-${Date.now()}`
+                }));
+
+                const pinataResponse = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${env.PINATA_JWT}` },
+                    body: uploadFormData
+                });
+
+                const pinataData = await pinataResponse.json();
+
+                if (!pinataData.IpfsHash) {
+                    return Response.json({ error: "IPFS upload failed" }, { status: 500, headers: corsHeaders });
+                }
+
+                return Response.json({ success: true, ipfsHash: pinataData.IpfsHash }, { headers: corsHeaders });
+            } catch (err) {
+                return Response.json({ error: "Upload failed: " + err.message }, { status: 500, headers: corsHeaders });
             }
         }
 

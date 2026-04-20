@@ -1,6 +1,6 @@
 import { generatePassphrase, deriveKeys, validatePassphrase, registerOnChain, lookupUsername, isUsernameTaken } from "./identity.js";
-import { connectToSignaling, startCall, sendMessage } from "./messaging.js";
-import { fetchOfflineMessages, deleteOfflineMessage } from "./ipfs.js";
+import { connectToSignaling, startCall, sendMessage, sendFile } from "./messaging.js";
+import { fetchOfflineMessages, deleteOfflineMessage, uploadFileToIPFS } from "./ipfs.js";
 
 const screens = {
     welcome: document.getElementById("screen-welcome"),
@@ -62,7 +62,11 @@ function restoreChatList() {
         const msgs = chatHistory[username];
         if (msgs && msgs.length > 0) {
             const last = msgs[msgs.length - 1];
-            addChatToList(username, last.text);
+            if (last.type === "file") {
+                addChatToList(username, `📎 ${last.fileName}`);
+            } else {
+                addChatToList(username, last.text);
+            }
         }
     });
 }
@@ -114,7 +118,13 @@ function openChat(username) {
 
     document.getElementById("chat-messages").innerHTML = "";
     if (chatHistory[username]) {
-        chatHistory[username].forEach(m => displayMessage(m.from, m.text, m.timestamp, m.isSelf));
+        chatHistory[username].forEach(m => {
+            if (m.type === "file") {
+                displayFileMessage(m, m.isSelf);
+            } else {
+                displayMessage(m.from, m.text, m.timestamp, m.isSelf);
+            }
+        });
     }
 
     if (window.innerWidth <= 768) {
@@ -153,7 +163,7 @@ document.getElementById("btn-restore").addEventListener("click", () => {
 });
 
 document.getElementById("btn-restore-submit").addEventListener("click", async () => {
-    const phrase = document.getElementById("restore-input").value.trim();
+    const phrase = document.getElementById("restore-input").value.trim().replace(/\s+/g, " ");
     if (!validatePassphrase(phrase)) {
         document.getElementById("restore-error").innerText = "Invalid passphrase. Please check your words and try again.";
         document.getElementById("restore-error").style.display = "block";
@@ -174,8 +184,8 @@ document.getElementById("btn-restore-submit").addEventListener("click", async ()
         const CONTRACT_ABI = [
             "function getUserByAddress(address userAddress) public view returns (string memory, string memory)",
             "function isAddressRegistered(address userAddress) public view returns (bool)"
-        ];
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+];
+const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
         const isRegistered = await contract.isAddressRegistered(keys.address);
 
         if (isRegistered) {
@@ -269,6 +279,67 @@ async function deliverOfflineMessages(username) {
     }
 }
 
+async function handleFileUpload(file) {
+    if (!activeChat) return;
+
+    const statusDiv = document.getElementById("chat-status");
+    statusDiv.innerText = "Uploading file...";
+
+    try {
+        const ipfsHash = await uploadFileToIPFS(file);
+        const result = await sendFile(activeChat, ipfsHash, file.name, file.type, file.size);
+
+        if (result.sent) {
+            if (!chatHistory[activeChat]) chatHistory[activeChat] = [];
+            const msg = {
+                from: sessionStorage.getItem("username"),
+                type: "file",
+                ipfsHash,
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size,
+                timestamp: Date.now(),
+                isSelf: true
+            };
+            chatHistory[activeChat].push(msg);
+            saveChatHistory();
+            displayFileMessage(msg, true);
+            addChatToList(activeChat, `📎 ${file.name}`);
+        }
+
+        statusDiv.innerText = "Connected";
+    } catch (err) {
+        statusDiv.innerText = "Connected";
+        alert("File upload failed: " + err.message);
+    }
+}
+
+function displayFileMessage(msg, isSelf) {
+    const messages = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = `message ${isSelf ? "sent" : "received"}`;
+
+    const isImage = msg.fileType && msg.fileType.startsWith("image/");
+    const fileUrl = `https://gateway.pinata.cloud/ipfs/${msg.ipfsHash}`;
+
+    if (isImage) {
+    div.innerHTML = `
+        <div class="message-bubble">
+            <img src="${fileUrl}" alt="${msg.fileName}" class="chat-image" data-url="${fileUrl}" style="max-width:250px;max-height:200px;border-radius:8px;cursor:pointer;">
+            <div class="message-text" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${msg.fileName}</div>
+        </div>
+        <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+    `;
+    setTimeout(() => {
+        const img = div.querySelector(".chat-image");
+        if (img) img.addEventListener("click", () => window.open(img.dataset.url, "_blank"));
+    }, 0);
+}
+
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
 async function initMessaging() {
     const username = sessionStorage.getItem("username");
     if (!username) return;
@@ -278,6 +349,17 @@ async function initMessaging() {
     document.getElementById("theme-toggle-chat").addEventListener("click", toggleTheme);
 
     connectToSignaling(username, (message) => {
+        if (message.type === "file") {
+            if (!chatHistory[message.from]) chatHistory[message.from] = [];
+            chatHistory[message.from].push({ ...message, isSelf: false });
+            saveChatHistory();
+            if (activeChat === message.from) {
+                displayFileMessage(message, false);
+            }
+            addChatToList(message.from, `📎 ${message.fileName}`);
+            return;
+        }
+
         if (!chatHistory[message.from]) chatHistory[message.from] = [];
         chatHistory[message.from].push({ ...message, isSelf: false });
         saveChatHistory();
@@ -318,6 +400,13 @@ async function initMessaging() {
     document.getElementById("btn-send").addEventListener("click", sendCurrentMessage);
     document.getElementById("chat-input").addEventListener("keydown", (e) => {
         if (e.key === "Enter") sendCurrentMessage();
+    });
+
+    document.getElementById("file-input").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        await handleFileUpload(file);
+        e.target.value = "";
     });
 }
 
