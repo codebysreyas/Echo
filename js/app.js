@@ -292,35 +292,43 @@ async function deliverOfflineMessages(username) {
 }
 
 async function handleFileUpload(file) {
-    if (!activeChat) return;
+    if (!activeChat) {
+        alert("No active chat. Please open a chat first.");
+        return;
+    }
 
     const statusDiv = document.getElementById("chat-status");
     statusDiv.innerText = "Uploading file...";
 
     try {
+        console.log("Starting upload for:", file.name, file.type, file.size);
         const ipfsHash = await uploadFileToIPFS(file);
+        console.log("Upload successful, hash:", ipfsHash);
         const result = await sendFile(activeChat, ipfsHash, file.name, file.type, file.size);
+        console.log("Send result:", result);
 
-        if (result.sent) {
-            if (!chatHistory[activeChat]) chatHistory[activeChat] = [];
-            const msg = {
-                from: sessionStorage.getItem("username"),
-                type: "file",
-                ipfsHash,
-                fileName: file.name,
-                fileType: file.type,
-                fileSize: file.size,
-                timestamp: Date.now(),
-                isSelf: true
-            };
-            chatHistory[activeChat].push(msg);
-            saveChatHistory();
-            displayFileMessage(msg, true);
-            addChatToList(activeChat, `📎 ${file.name}`);
+        const msg = {
+            from: sessionStorage.getItem("username"),
+            type: "file",
+            ipfsHash,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            timestamp: Date.now(),
+            isSelf: true
+        };
+        chatHistory[activeChat].push(msg);
+        saveChatHistory();
+        displayFileMessage(msg, true);
+        addChatToList(activeChat, `📎 ${file.name}`);
+
+        if (!result.sent) {
+            console.log("Recipient offline — file stored on IPFS only");
         }
 
         statusDiv.innerText = "Connected";
     } catch (err) {
+        console.error("File upload error:", err);
         statusDiv.innerText = "Connected";
         alert("File upload failed: " + err.message);
     }
