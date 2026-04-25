@@ -37,13 +37,8 @@ function toggleTheme() {
     const html = document.documentElement;
     const isDark = html.getAttribute("data-theme") === "dark";
     html.setAttribute("data-theme", isDark ? "light" : "dark");
-    const icon = isDark ? "☀️" : "🌙";
-    document.getElementById("theme-toggle").innerText = icon;
-    const chatToggle = document.getElementById("theme-toggle-chat");
-    if (chatToggle) chatToggle.innerText = icon;
 }
 
-document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 
 function loadSession() {
     const username = sessionStorage.getItem("username");
@@ -132,6 +127,23 @@ function openChat(username) {
     }
 }
 
+function logout() {
+    if (!confirm("Are you sure you want to logout? Make sure you have saved your passphrase.")) return;
+    const username = sessionStorage.getItem("username");
+    if (username) localStorage.removeItem(`echo_chat_history_${username}`);
+    sessionStorage.clear();
+    location.reload();
+}
+
+function clearChat() {
+    if (!activeChat) return;
+    if (!confirm(`Clear all messages with ${activeChat}?`)) return;
+    chatHistory[activeChat] = [];
+    saveChatHistory();
+    document.getElementById("chat-messages").innerHTML = "";
+    addChatToList(activeChat, "");
+}
+
 document.getElementById("btn-back").addEventListener("click", () => {
     document.getElementById("chat-main").classList.remove("mobile-open");
 });
@@ -184,8 +196,8 @@ document.getElementById("btn-restore-submit").addEventListener("click", async ()
         const CONTRACT_ABI = [
             "function getUserByAddress(address userAddress) public view returns (string memory, string memory)",
             "function isAddressRegistered(address userAddress) public view returns (bool)"
-];
-const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+        ];
+        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
         const isRegistered = await contract.isAddressRegistered(keys.address);
 
         if (isRegistered) {
@@ -323,18 +335,32 @@ function displayFileMessage(msg, isSelf) {
     const fileUrl = `https://gateway.pinata.cloud/ipfs/${msg.ipfsHash}`;
 
     if (isImage) {
-    div.innerHTML = `
-        <div class="message-bubble">
-            <img src="${fileUrl}" alt="${msg.fileName}" class="chat-image" data-url="${fileUrl}" style="max-width:250px;max-height:200px;border-radius:8px;cursor:pointer;">
-            <div class="message-text" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${msg.fileName}</div>
-        </div>
-        <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-    `;
-    setTimeout(() => {
-        const img = div.querySelector(".chat-image");
-        if (img) img.addEventListener("click", () => window.open(img.dataset.url, "_blank"));
-    }, 0);
-}
+        div.innerHTML = `
+            <div class="message-bubble">
+                <img src="${fileUrl}" alt="${msg.fileName}" class="chat-image" data-url="${fileUrl}" style="max-width:250px;max-height:200px;border-radius:8px;cursor:pointer;">
+                <div class="message-text" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${msg.fileName}</div>
+            </div>
+            <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+        `;
+        setTimeout(() => {
+            const img = div.querySelector(".chat-image");
+            if (img) img.addEventListener("click", () => window.open(img.dataset.url, "_blank"));
+        }, 0);
+    } else {
+        const sizeKB = msg.fileSize ? Math.round(msg.fileSize / 1024) : 0;
+        div.innerHTML = `
+            <div class="message-bubble">
+                <a href="${fileUrl}" target="_blank" download="${msg.fileName}" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text-primary);">
+                    <span style="font-size:28px;">📎</span>
+                    <div>
+                        <div style="font-size:14px;font-weight:500;">${msg.fileName}</div>
+                        <div style="font-size:12px;color:var(--text-secondary);">${sizeKB} KB</div>
+                    </div>
+                </a>
+            </div>
+            <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+        `;
+    }
 
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
@@ -346,7 +372,28 @@ async function initMessaging() {
 
     await deliverOfflineMessages(username);
 
-    document.getElementById("theme-toggle-chat").addEventListener("click", toggleTheme);
+    document.getElementById("btn-logout").addEventListener("click", logout);
+
+    document.getElementById("btn-menu").addEventListener("click", (e) => {
+        e.stopPropagation();
+        const menu = document.getElementById("chat-menu");
+        menu.style.display = menu.style.display === "none" ? "block" : "none";
+    });
+
+    document.addEventListener("click", () => {
+        const menu = document.getElementById("chat-menu");
+        if (menu) menu.style.display = "none";
+    });
+
+    document.getElementById("menu-toggle-theme").addEventListener("click", () => {
+        toggleTheme();
+        document.getElementById("chat-menu").style.display = "none";
+    });
+
+    document.getElementById("menu-clear-chat").addEventListener("click", () => {
+        clearChat();
+        document.getElementById("chat-menu").style.display = "none";
+    });
 
     connectToSignaling(username, (message) => {
         if (message.type === "file") {
