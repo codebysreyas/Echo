@@ -47,3 +47,14 @@ Complete frontend redesign with a clean, responsive chat interface. Built with m
 ## Day 8 — IPFS Offline Delivery and GitHub Pages
 Deployed Echo to GitHub Pages — now live at https://codebysreyas.github.io/Echo .Added offline message delivery using IPFS via Pinata. When a recipient is offline, messages are encrypted and stored on IPFS. When they come back online, messages are automatically fetched and delivered. Added persistent chat history using localStorage so messages survive page refreshes.
 
+---
+
+## Day 9 — File and Image Sharing
+Added file and image sharing via IPFS. Users can send images, PDFs, documents and other files directly in chat. Images display inline in the conversation. Other file types show as a download card. Files are uploaded to IPFS via Pinata and the hash is sent to the recipient via WebRTC. Added paperclip button in the chat input area.
+
+---
+
+## Day 10 — UI Polish and Chat Controls
+Added a three dot menu in the chat header with two options — Toggle Theme for switching between dark and light mode, and Clear Chat for deleting conversation history. Added logout button in the sidebar. Fixed multiple bugs including passphrase restore validation, duplicate import errors, and chat history persistence per user account.
+
+**Live URL:** https://codebysreyas.github.io/Echo
